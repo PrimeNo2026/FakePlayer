@@ -14,6 +14,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Projektordner finden
+        id: find
+        run: |
+          FILE=$(find . -name settings.gradle -not -path './.git/*' | head -n 1)
+          if [ -z "$FILE" ]; then
+            echo "::error::Keine settings.gradle im Repository gefunden. Bitte die Projektdateien (build.gradle, settings.gradle, src/) hochladen."
+            exit 1
+          fi
+          echo "dir=$(dirname "$FILE")" >> "$GITHUB_OUTPUT"
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -24,6 +34,7 @@ jobs:
           gradle-version: '9.1.0'
 
       - name: Build
+        working-directory: ${{ steps.find.outputs.dir }}
         run: gradle build --no-daemon
 
       - name: Release erstellen
@@ -31,4 +42,4 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           name: FakePlayer Build ${{ github.run_number }}
-          files: build/libs/FakePlayer-*.jar
+          files: ${{ steps.find.outputs.dir }}/build/libs/FakePlayer-*.jar
